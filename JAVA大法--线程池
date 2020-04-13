@@ -1,0 +1,113 @@
+JAVA大法2---线程池技术
+
+各位兄弟姐妹，大家肯定对于java线程池比较熟悉了吧，不过这篇肯定还是会让你收获满满
+
+654法则大家要记者---6大核心参数，5大线程池，4种拒绝策略
+
+在Java中使用线程池，可以用ThreadPoolExecutor的构造函数直接创建出线程池实例，如何使用参见之前的文章Java线程池构造参数详解。
+不过，在Executors类中，为我们提供了常用线程池的创建方法。
+
+六大核心参数
+corePoolSize /queueCapacity/maxPoolSize/keepAliveTime/allowCoreThreadTimeout/rejectedExecutionHandler
+
+1.corePoolSize：核心线程数
+
+核心线程会一直存活，及时没有任务需要执行。
+
+当线程数小于核心线程数时，即使有线程空闲，线程池也会优先创建新线程处理。
+
+设置allowCoreThreadTimeout=true（默认false）时，核心线程会超时关闭。
+
+2.queueCapacity：任务队列容量（阻塞队列）
+
+当核心线程数达到最大时，新任务会放在队列中排队等待执行。
+
+3.maxPoolSize：最大线程数
+
+当线程数>=corePoolSize，且任务队列已满时。线程池会创建新线程来处理任务。
+
+当线程数=maxPoolSize，且任务队列已满时，线程池会拒绝处理任务而抛出异常。
+
+4.keepAliveTime：线程空闲时间
+
+当线程空闲时间达到keepAliveTime时，线程会退出，直到线程数量=corePoolSize。
+
+如果allowCoreThreadTimeout=true，则会直到线程数量=0。
+
+5.allowCoreThreadTimeout：允许核心线程超时
+
+6.rejectedExecutionHandler：任务拒绝处理器
+
+五大线程池
+
+1、newFixedThreadPool() ： 
+作用：该方法返回一个固定线程数量的线程池，该线程池中的线程数量始终不变，即不会再创建新的线程，也不会销毁已经创建好的线程，自始自终都是那几个固定的线程在工作，所以该线程池可以控制线程的最大并发数。 
+栗子：假如有一个新任务提交时，线程池中如果有空闲的线程则立即使用空闲线程来处理任务，如果没有，则会把这个新任务存在一个任务队列中，一旦有线程空闲了，则按FIFO方式处理任务队列中的任务。
+
+2、newCachedThreadPool() ： 
+作用：该方法返回一个可以根据实际情况调整线程池中线程的数量的线程池。即该线程池中的线程数量不确定，是根据实际情况动态调整的。 
+栗子：假如该线程池中的所有线程都正在工作，而此时有新任务提交，那么将会创建新的线程去处理该任务，而此时假如之前有一些线程完成了任务，现在又有新任务提交，那么将不会创建新线程去处理，而是复用空闲的线程去处理新任务。那么此时有人有疑问了，那这样来说该线程池的线程岂不是会越集越多？其实并不会，因为线程池中的线程都有一个“保持活动时间”的参数，通过配置它，如果线程池中的空闲线程的空闲时间超过该“保存活动时间”则立刻停止该线程，而该线程池默认的“保持活动时间”为60s。
+
+3、newSingleThreadExecutor() ： 
+作用：该方法返回一个只有一个线程的线程池，即每次只能执行一个线程任务，多余的任务会保存到一个任务队列中，等待这一个线程空闲，当这个线程空闲了再按FIFO方式顺序执行任务队列中的任务。
+
+4、newScheduledThreadPool() ： 
+作用：该方法返回一个可以控制线程池内线程定时或周期性执行某任务的线程池。
+
+5、newSingleThreadScheduledExecutor() ： 
+作用：该方法返回一个可以控制线程池内线程定时或周期性执行某任务的线程池。
+只不过和上面的区别是该线程池大小为1，而上面的可以指定线程池的大小。
+
+
+四大拒绝策略
+
+　jdk默认提供了四种拒绝策略：
+
+CallerRunsPolicy - 
+当触发拒绝策略，只要线程池没有关闭的话，则使用调用线程直接运行任务。一般并发比较小，性能要求不高，不允许失败。但是，由于调用者自己运行任务，如果任务提交速度过快，可能导致程序阻塞，性能效率上必然的损失较大
+（通俗点说，就是自己提交自己干）
+
+AbortPolicy - 丢弃任务，并抛出拒绝执行 RejectedExecutionException 异常信息。线程池默认的拒绝策略。必须处理好抛出的异常，否则会打断当前的执行流程，影响后续的任务执行。
+（处理不了，高喊一声我拒绝执行）
+
+DiscardPolicy - 直接丢弃，其他啥都没有
+（处理不了，默默的扔了）
+
+DiscardOldestPolicy -  当触发拒绝策略，只要线程池没有关闭的话，丢弃阻塞队列 workQueue 中最老的一个任务，并将新任务加入
+（太久的任务不处理了）
+
+
+还有一个问题，就是如何设置线程的数量
+
+一般说来，大家认为线程池的大小经验值应该这样设置：（其中N为CPU的个数）
+• 如果是CPU密集型应用，则线程池大小设置为N+1
+• 如果是IO密集型应用，则线程池大小设置为2N+1
+如果一台服务器上只部署这一个应用并且只有这一个线程池，那么这种估算或许合理，具体还需自行测试验证。
+但是，IO优化中，这样的估算公式可能更适合：
+最佳线程数目 = （（线程等待时间+线程CPU时间）/线程CPU时间 ）* CPU数目
+因为很显然，线程等待时间所占比例越高，需要越多线程。线程CPU时间所占比例越高，需要越少线程。
+下面举个例子：
+比如平均每个线程CPU运行时间为0.5s，而线程等待时间（非CPU运行时间，比如IO）为1.5s，CPU核心数为8，那么根据上面这个公式估算得到：((0.5+1.5)/0.5)*8=32。这个公式进一步转化为：
+最佳线程数目 = （线程等待时间与线程CPU时间之比 + 1）* CPU数目
+
+
+最后注意一点，这个我也是参考别人写的
+我们在创建线程池
+《阿里巴巴Java开发手册》中强制线程池不允许使用 Executors 去创建，而是通过 ThreadPoolExecutor 的方式，这样的处理方式让写的同学更加明确线程池的运行规则，规避资源耗尽的风险
+
+Executors 返回线程池对象的弊端如下：
+
+FixedThreadPool 和 SingleThreadExecutor ： 允许请求的队列长度为 Integer.MAX_VALUE ，可能堆积大量的请求，从而导致OOM。
+CachedThreadPool 和 ScheduledThreadPool ： 允许创建的线程数量为 Integer.
+
+我们建议这样创建：
+public Threadpoolexecutor(int corepoolsize,
+                          int maximumpoolsize,
+                          long keepalivetime,
+                         timeunit unit,
+                         blockingqueue<runable> workqueue,
+                         Threadfactory threadFactory,
+                         RejectedExecutionHanler handler}
+
+
+
