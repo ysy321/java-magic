@@ -2,7 +2,7 @@ JAVA大法36计--------集合类
 
 我们的口号是什么--------------JAVA大法好
 
-今天shiyao酱来进行java大法的第一个篇章的介绍，首先第一篇我们的主角就是集合类，这个包含的东西其实也是蛮多的，现在
+今天Shiyao酱来进行java大法的第一个篇章的介绍，首先第一篇我们的主角就是集合类，这个包含的东西其实也是蛮多的，现在
 的话咱们就打开面纱，进行详细的梳理
 
 首先咱们由浅入深的介绍这些东西，从全局再到细节
@@ -10,41 +10,42 @@ JAVA大法36计--------集合类
 java集合类分为map,set,list,首先我们来看这3种数据结构有什么特点：
 
 首先：map,主要是使用键值对进行存储,
-其次：set,不允许重复的集合。l
+其次：set,不允许重复的集合。
 最后：list可以存储不唯一然后有序的队列
 
-和map相关的有哪些结构：
-hashmap,hashtable,concurrenthashmap,treemap,concurrentSkipListMap
+1. 和map相关的有哪些结构：
+   hashmap,hashtable,concurrenthashmap,treemap,concurrentSkipListMap
 
-和set相关有哪些结构：
-hashset,treeset，linkedhashset
+2  和set相关有哪些结构：
+   hashset,treeset，linkedhashset
 
-和list相关的有哪些结构
-arraylist,linkedlist,vector，copyonwriteArraylist
+3  和list相关的有哪些结构
+   arraylist,linkedlist,vector，copyonwriteArraylist
 
-和Queue相关的有哪些结构：
-BlockingQueue
-ArrayBlockingQueue
-LinkedBlockingQueue
-PriorityBlockingQueue
-synchronousQueue
-DelayQueue
+4 和Queue相关的有哪些结构：
+  BlockingQueue
+  ArrayBlockingQueue
+  LinkedBlockingQueue
+  PriorityBlockingQueue
+  synchronousQueue
+  DelayQueue
 
 
 分模块具体进行解释：MAP大模块
 
 1.HASHMAP
 hashmap--底层结构是(数组+链表+红黑树)
-jdk1.7和jdk1.8的hashmap是不同的，jdk1.7的话，主要是由
-数组+链表
+jdk1.7和jdk1.8的hashmap是不同的，jdk1.7的话，主要是由数组+链表
 jdk1.8变成了数组+链表+红黑树
-一个数放入的过程
+
+具体解释一个数put的过程
+
 1.首先table数组未初始化的话，需要进行扩容
 2.具体的一个过程就是首先用hashcode算出hash值
 3.接着需要（n-1)&hash这样找出元素存放的位置
-具体代码
-if((p=tab[i=(n-1)&hash]==null)
-tab[i]=newNode(hash,key,value,null);
+具体代码     if((p=tab[i=(n-1)&hash]==null)
+           tab[i]=newNode(hash,key,value,null);
+           
 4.然后放的时候，如果当前有元素的话，使用==和equals进行比较，看存入的元素hash和key值是否相同，相同就替换，不同的话就加到链表的尾部（这个点在jdk1.7采用的是头插法）
 if(e!=null){
 v oldValue=e.value;
@@ -53,94 +54,108 @@ e.value=value;
 afterNodeAceess(e);
 return oleValue;
 }
+
 5.如果链表的长度超过了8，同时，数组大于64的话，那么就会转化为红黑树
 treeifyBin(tab, hash);//把链表转化为红黑树
-红黑树
-1.每个节点，要么黑色，要么红色，跟节点黑色
-2.每个红色节点的两个子节点都是黑色
-3.红色节点不能连续
-4.任一节点到其子树每个叶子节点的路径都有相同的黑色节点
-5.所有叶子节点都是黑色
-要理解红黑树，左旋和右旋要知道
-红黑树的左旋操作
-假设待左旋的结构中，P为父节点，S为孩子节点。左旋操作后，S节点代替P节点的位置，P节点成为S节点的左孩子，S节点的左孩子成为P节点的右孩子。
-红黑树的右旋操作。
-假设待右旋的结构中，P为父节点，S为孩子节点。右旋操作后，S节点代替P节点的位置，P节点成为S节点的右孩子，S节点的右孩子成为P节点的左孩子
-注意：
 
-6.hashcode的加载因为是0.75，太大太小都不好，这个值比较合适，默认大小为16（移位运算符，1 << 4 ，相当于16）
+小tips: 红黑树
+       1.每个节点，要么黑色，要么红色，跟节点黑色
+       2.每个红色节点的两个子节点都是黑色
+       3.红色节点不能连续
+       4.任一节点到其子树每个叶子节点的路径都有相同的黑色节点
+       5.所有叶子节点都是黑色
+       要理解红黑树，左旋和右旋要知道
+       红黑树的左旋操作
+       假设待左旋的结构中，P为父节点，S为孩子节点。左旋操作后，S节点代替P节点的位置，P节点成为S节点的左孩子，S节点的左孩子成为P节点的右孩子。
+       红黑树的右旋操作。
+       假设待右旋的结构中，P为父节点，S为孩子节点。右旋操作后，S节点代替P节点的位置，P节点成为S节点的右孩子，S节点的右孩子成为P节点的左孩子
+
+
+hashmap的扩容：
+hashmap的加载因为是0.75，太大太小都不好，这个值比较合适，默认大小为16（移位运算符，1 << 4 ，相当于16）
 当12的时候就要扩容，resize一次的话比价消耗性能，尽量少避免扩容，一次扩2倍
 Arraylist-底层是数组队列，动态数组，主要是能自动扩容，继承于 AbstractList，实现了 List, RandomAccess, Cloneable, java.io.Serializable 这些接口，增加删除效率o(n),查询o(1)
 底层调用的是System.arraycopy()和Arrays.copyOf()方法
 
-复制的时候
-扩容的核心代码
-int newCapacity = oldCapacity + (oldCapacity >> 1);
-toArray()方法中用到了copyOf()方法,底层代码
-Arrays.copyOf(elementData, size);
-
-另外做个注释
-按照平移的方向和填充数字的规则分为三种:<<(左移)、>>(带符号右移)和>>>(无符号右移)。
-add增加时候底层做的操作
-System.arraycopy(elementData, index, elementData, index + 1, size - index);
+  复制的时候
+  扩容的核心代码
+  int newCapacity = oldCapacity + (oldCapacity >> 1);
+  toArray()方法中用到了copyOf()方法,底层代码
+  Arrays.copyOf(elementData, size);
+  另外做个注释
+  按照平移的方向和填充数字的规则分为三种:<<(左移)、>>(带符号右移)和>>>(无符号右移)。
+  add增加时候底层做的操作
+  System.arraycopy(elementData, index, elementData, index + 1, size - index);
+  
 
 2.concurrenthashmap
-jdk1.7和jdk1.8有明显的不同，jdk1.7底层是reentranlock+segment+hashentry
-jdk1.8底层是synchronized+hashEntry+CAS+红黑树
+  jdk1.7和jdk1.8有明显的不同，jdk1.7底层是reentranlock+segment+hashentry
+  jdk1.8底层是synchronized+hashEntry+CAS+红黑树
 
 3.hashtable
-基本就是hashmap的翻版，不过方法都加上了synchronized,是线程安全的
-另外，hashtable继承于Dictionary类（和map类似，不过已经过时了所以不建议用hashtable)，而HashMap继承自AbstractMap类，但二者都实现了Map接口
+  基本就是hashmap的翻版，不过方法都加上了synchronized,是线程安全的
+  另外，hashtable继承于Dictionary类（和map类似，不过已经过时了所以不建议用hashtable)，而HashMap继承自AbstractMap类，但二者都实现了Map接口
 
 4.treemap
-TreeMap实现了SotredMap接口，它是有序的集合， TreeMap的实现是红黑树算法的实现
+  TreeMap实现了SotredMap接口，它是有序的集合， TreeMap的实现是红黑树算法的实现
 
 5.ConcurrentSkipListMap
-线程安全的有序的哈希表，适用于高并发的场景,底层主要靠跳表来实现
-温习一下skiplist
-(
-跳跃表具有以下几个必备的性质：
-1.最底层包含所有节点的一个有序的链表
-2.每一层都是一个有序的链表
-3.每个节点都有两个指针，一个指向右侧节点（没有则为空），一个指向下层节点（没有则为空）
-必备一个头节点指向最高层的第一个节点，通过它可以遍历整张表)
+  线程安全的有序的哈希表，适用于高并发的场景,底层主要靠跳表来实现
+  温习一下skiplist
+ (
+ 跳跃表具有以下几个必备的性质：
+ 1.最底层包含所有节点的一个有序的链表
+ 2.每一层都是一个有序的链表
+ 3.每个节点都有两个指针，一个指向右侧节点（没有则为空），一个指向下层节点（没有则为空）
+ 必备一个头节点指向最高层的第一个节点，通过它可以遍历整张表)
+ 
+ 
+6.linkedhashmap:
+  主要是基于hashmap+双重链表来实现的,双重链表保证了插入顺序和访问顺序
 
 和set相关的数据结构
-hashset：
-HashSet实现Set接口，由哈希表（实际上是一个HashMap实例）支持。它不保证set 的迭代顺序；特别是它不保证该顺序恒久不变，此类允许使用null元素
+1.hashset：
+  HashSet实现Set接口，由哈希表（实际上是一个HashMap实例）支持。它不保证set 的迭代顺序；特别是它不保证该顺序恒久不变，此类允许使用null元素
 
-treeset：treeset是基于treemap实现，treemap基于红黑树，所以treeset也是基于红黑好树，也是提供有序的集合，继承继承了AbstractSet抽象类，实现了cloneable,serializable接口，
-排序方式提供2种，一种是自然排序，一种是基于comparator来排序
+2 treeset：
+  treeset是基于treemap实现，treemap基于红黑树，所以treeset也是基于红黑好树，也是提供有序的集合，继承继承了AbstractSet抽象类，实现了cloneable,serializable接口，
+  排序方式提供2种，一种是自然排序，一种是基于comparator来排序
 
-linkedhashmap:主要是基于hashmap+双重链表来实现的
-双重链表保证了插入顺序和访问顺序
 
-和list相关的数据结构
-arraylist:底层是个数组队列，能够动态的增长，继承于a bstractlist,实现了list,randomaccess,cloneable,java.io.serializable这些接口，查询o(1),增删o(N),
-linkedlist：底层是个双向链表，查询o(n),增删o(1)
-vector:底层也是通过数组来实现，扩容会翻倍，线程安全
+ list相关的数据结构
+ 
+1arraylist:
+底层是个数组队列，能够动态的增长，继承于a bstractlist,实现了list,randomaccess,cloneable,java.io.serializable这些接口，查询o(1),增删o(N),
 
-copyonwriteArraylist:
+2.linkedlist：
+底层是个双向链表，查询o(n),增删o(1)
+ 
+3vector:底层也是通过数组来实现，扩容会翻倍，线程安全
+
+4.copyonwriteArraylist:
 CopyOnWriteArrayList实现了List接口，List接口定义了对列表的基本操作；实现了RandomAccess,cloneable,serializizable接口。读的时候不加锁，写入和删除的时候会加上lock,然后复制一份副本
 
 和Queue相关的有哪些结构
 BlockingQueue:塞队列，顾名思义，首先它是一个队列，而一个队列在数据结构中所起的作用大致如下图所示
 使用场景：比如经典的“生产者”和“消费者”模型中，通过队列可以很便利地实现两者之间的数据共享
 
-ArrayBlockingQueue
+1.ArrayBlockingQueue
 基于数组的阻塞队列实现，在ArrayBlockingQueue内部，维护了一个定长数组，以便缓存队列中的数据对象，常用操作
-dd ,offer,put，remove,poll,take，ArrayBlockingQueue主要就是根据reentrantlokc可重入互斥锁实现“多线程对竞争资源的互斥访问
+add ,offer,put，remove,poll,take，ArrayBlockingQueue主要就是根据reentrantlokc可重入互斥锁实现“多线程对竞争资源的互斥访问
 
-LinkedBlockingQueue
+2.LinkedBlockingQueue
 LinkedBlockingQueue内部由单链表实现，只能从head取元素，从tail添加元素。添加元素和获取元素都有独立的锁，也就是说LinkedBlockingQueue是读写分离的，读写操作可以并行执行。LinkedBlockingQueue采用可重入锁(ReentrantLock)来保证在并发情况下的线程安全。
 PriorityBlockingQueue
 PriorityBlockingQueue基于最小二叉堆实现，使用基于CAS实现的自旋锁来控制队列的动态扩容，保证了扩容操作不会阻塞take操作的执行。默认情况下元素采用自然顺序升序排列。也可以自定义类实现compareTo()方法来指定元素排序规则
 
-synchronousQueue
+3.synchronousQueue
 SynchronousQueue直接使用CAS实现线程的安全访问，
 对于每个put/offer操作,必须等待一个take/poll操作，队列中并没有一个真正的元素
 
-DelayQueue
+4.DelayQueue
 DelayQueue是一个没有边界BlockingQueue实现，加入其中的元素必需实现Delayed接口。当生产者线程调用put之类的方法加入元素时，会触发Delayed接口中的compareTo方法进行排序，也就是说队列中元素的顺序是按到期时间排序的，而非它们进入队列的顺序。排在队列头部的元素是最早到期的，越往后到期时间赿晚
 这就是这篇的主要内容，简要梳理一下常用的集合类，希望对大家有帮助
 、
+5.PriorityBlockingQueue
+PriorityBlockingQueue是一个支持优先级的无界阻塞队列，直到系统资源耗尽。默认情况下元素采用自然顺序升序排列
+
