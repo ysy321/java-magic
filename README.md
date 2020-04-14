@@ -1,2 +1,2 @@
 # java-magic
-java36计，直通BATJT大厂必备技能
+java36计，系统梳理java知识体系
