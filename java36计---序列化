@@ -1,0 +1,34 @@
+对象的序列化就是将对象写入输出流中。
+
+反序列化就是从输入流中将对象读取出来。
+
+用来实现序列化的类都在java.io包中，我们常用的类或接口有：
+
+ObjectOutputStream:提供序列化对象并把其写入流的方法
+
+ObjectInputStream：读取流并反序列化对象
+
+Serializable：一个对象想要被序列化，那么它的类就要实现 此接口，这个对象的所有属性（包括private属性、包括其引用的对象）都可以被序列化和反序列化来保存、传递。
+
+Externalizable：
+他是Serializable接口的子类，有时我们不希望序列化那么多，可以使用这个接口，这个接口的writeExternal()和readExternal()方法可以指定序列化哪些属性;
+ 但是如果你只想隐藏一个属性，比如用户对象user的密码pwd，如果使用Externalizable，并除了pwd之外的每个属性都写在writeExternal()方法里，这样显得麻烦，可以使用Serializable接口，并在要隐藏的属性pwd前面加上transient就可以实现了。
+
+
+
+1、Java原生序列化
+Java原生序列化方法即通过Java原生流(InputStream和OutputStream之间的转化)的方式进行转化。需要注意的是JavaBean实体类必须实现Serializable接口，否则无法序列化。Java原生序列化代码示例如下所示：
+
+2、Json序列化
+Json序列化一般会使用jackson包，通过ObjectMapper类来进行一些操作，比如将对象转化为byte数组或者将json串转化为对象。现在的大多数公司都将json作为服务器端返回的数据格式。比如调用一个服务器接口，通常的请求为xxx.json?a=xxx&b=xxx的形式。Json序列化示例代码如下所示：2.
+
+3、FastJson序列化
+fastjson 是由阿里巴巴开发的一个性能很好的Java 语言实现的 Json解析器和生成器。特点：速度快，测试表明fastjson具有极快的性能，超越任其他的java json parser。功能强大，完全支持java bean、集合、Map、日期、Enum，支持范型和自省。无依赖，能够直接运行在Java SE 5.0以上版本 
+支持Android。使用时候需引入FastJson第三方jar包。FastJson序列化代码示例如下所示：
+new FastJsonSerialize().start();
+text = JSON.toJSONString(u); 
+
+4、ProtoBuff序列化
+优点：跨语言；序列化后数据占用空间比JSON小，JSON有一定的格式，在数据量上还有可以压缩的空间。
+
+缺点：它以二进制的方式存储，无法直接读取编辑，除非你有 .proto 定义，否则无法直接读出 Protobuffer的任何内容
