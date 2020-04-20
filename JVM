@@ -1,0 +1,244 @@
+HashMap和ConcurrentHashMap区别
+
+一个是线程安全的，一个是线程不安全的
+JDK1.7中
+    使用一个Entry数组来存储数据，用key的hashcode取模来决定key会被放到数组里的位置，如果hashcode相同，或者hashcode取模后的结果相同，那么这些key会被定位到Entry数组的同一个格子里，这些key会形成一个链表；
+    在hash函数特别差的情况下，比如说所有key的hashcode都相同，这个链表可能会很长，那么put/get操作都可能需要遍历这个链表，也就是最差情况下时间复杂度为O（n）。
+ 
+JDK1.8中
+    使用一个Node数组来存储数据，但是这个Node可能是链表结构，也可能是红黑树结构；如果插入的元素key的hashcode值相同，那么这些key也会被定位到Node数组的同一个格子里，如果不超过8个使用链表存储，超过8个，会调用treeifyBin函数，将链表转换为红黑树。那么即使所有key的hashcode完全相同，由于红黑树的特点，查找某个特定元素，也只需要O（logn）的开销。
+ConcurrentHashMap支持并发，在处理多线程时需要对Table加锁。如果对整个Table表加锁，同一时刻就只能有一个写线程进入，而ConcurrentHashMap默认将Table表分成16个段（Segment ），对每个段分别加锁，现在允许16个写进程同时进入，并发性的提升显而易见。
+
+Jdk1.7
+使用segment+hashentry来实现。ConcurrentHashMap在初始化时，计算出segement数组的大小ssize和每个segment中HashEntry数组的大小cap，并初始化segement数组的第一个元素，其中ssize大小为2的幂次方，默认为16，cap大小也是2的幂次方，最小值为2。segement在实现上继承了ReetrantLock，这样就自带了锁的功能。
+
+JDK1.8中
+ConcurrentHashMap的数据结构
+放弃了segment的设计，取而代之的是Node+CAS+Synchronized来保证并发安全。
+
+
+
+高并发HashMap的环是如何产生的？
+hashmap是一个非线程安全的集合。
+他的线程不安全出现在，并发情况下可能会出现链表成环的问题，导致程序在执行get操作时形成死循环。
+int i = indexFor(e.hash, newCapacity);
+            e.next = newTable[i];
+            newTable[i] = e;
+            e = next;
+
+若当前线程此时获得ertry节点，但是被线程中断无法继续执行，此时线程二进入transfer函数，并把函数顺利执行，此时新表中的某个位置有了节点，之后线程一获得执行权继续执行，因为并发transfer，所以两者都是扩容的同一个链表，当线程一执行到e.next = new table[i] 的时候，由于线程二之前数据迁移的原因导致此时new table[i] 上就有ertry存在，所以线程一执行的时候，会将next节点，设置为自己，导致自己互相使用next引用对方，因此产生链表，导致死循环。
+
+
+volatile作用?
+如果对声明了volatile的变量进行写操作，JVM就会向处理器发送一条Lock前缀的指令,
+每个处理器通过嗅探在总线上传播的数据来检查自己缓存的值是不是过期了
+
+volatile的保证内存可见性、禁止指令重排等
+当对非volatile变量进行读写的时候，每个线程先从主内存拷贝变量到CPU缓存中，如果计算机有多个CPU，每个线程可能在不同的CPU上被处理，这意味着每个线程可以拷贝到不同的CPU cache中。
+指令重排序是JVM为了优化指令、提高程序运行效率，在不影响单线程程序执行结果的前提下，尽可能地提高并行度
+每个volatile写操作的前面插入一个StoreStore屏障；
+在每个volatile写操作的后面插入一个StoreLoad屏障；
+在每个volatile读操作的后面插入一个LoadLoad屏障；
+在每个volatile读操作的后面插入一个LoadStore屏障
+
+MM可以通过happens-before关系向程序员提供跨线程的内存可见性保证（如果A线程的写操作a与B线程的读操作b之间存在happens-before关系，尽管a操作和b操作在不同的线程中执行，但JMM向程序员保证a操作将对b操作可见
+传递性：如果A happens-before B，且B happens-before C，那么A happens-before C。
+
+
+
+
+Atomic类如何保证原子性（CAS操作）
+1.atomic 内部的value 使用volatile保证内存可见性
+2.使用CAS保证原子性
+3.cas （compare and swap) 有三个值
+内存值 V
+预估值 A
+更新值 B
+ Atomic包是java.util.concurrent下的另一个专门为线程安全设计的java的包，包含多个原子性操作的类
+底层就是Unsafe类里面的compareAndSwapXXX 方法最后都会变成与硬件相关的CAS指令
+java.util.concurrent.atomic包下，atomic包里面一共提供了13个类
+原子更新基本类型，原子更新数组，原子更新引用，原子更新属性
+如果是 JDK8，推荐使用 LongAdder 对象，比 AtomicLong 性能更好(减少乐观锁的重试次数)
+    * AtomicBoolean：布尔型
+    * AtomicInteger：整型
+    * AtomicLong：长整型
+* 数组：
+    * AtomicIntegerArray：数组里的整型
+    * AtomicLongArray：数组里的长整型
+    * AtomicReferenceArray：数组里的引用类型
+* 引用类型：
+    * AtomicReference：引用类型
+    * AtomicStampedReference：带有版本号的引用类型
+    * AtomicMarkableReference：带有标记位的引用类型
+* 对象的属性：
+    * AtomicIntegerFieldUpdater：对象的属性是整型
+    * AtomicLongFieldUpdater：对象的属性是长整型
+    * AtomicReferenceFieldUpdater：对象的属性是引用类型
+Atomic包里的类基本都是使用Unsafe实现的包装类--C代码调用汇编--一条CPU指令cmpxchg
+
+解决ABA问题-----要解决ABA的问题，我们可以使用JDK给我们提供的AtomicStampedReference
+
+LongAdder性能比AtomicLong要好
+
+如果是 JDK8，推荐使用 LongAdder 对象，比 AtomicLong 性能更好(减少乐观锁的重试次数)。内部核心数据value分离成一个数组(Cell)，每个线程访问时,通过哈希等算法映射到其中一个数字进行计数，而最终的计数结果，则为这个数组的求和累加
+
+
+synchronized和Lock的区别
+
+
+synchronized和ReentrantLook
+可重入锁：Synchronized和ReentrantLook都是可重入锁，锁的可重入性标明了锁是针对线程分配方式而不是针对方法。例如调用Synchronized方法A中可以调用Synchronized方法B，而不需要重新申请锁。
+读写锁：按照数据库事务隔离特性的类比读写锁，在访问统一个资源（一个文件）的时候，使用读锁来保证多线程可以同步读取资源。ReadWriteLock是一个读写锁，通过readLock()获取读锁，通过writeLock()获取写锁。
+可中断锁：可中断是指锁是可以被中断的，Synchronized内置锁是不可中断锁，ReentrantLock可以通过lockInterruptibly方法中断显性锁。例如线程B在等待等待线程A释放锁，但是线程B由于等待时间太久，可以主动中断等待锁。
+公平锁：公平锁是指尽量以线程的等待时间先后顺序获取锁，等待时间最久的线程优先获取锁。synchronized隐性锁是非公平锁，它无法保证等待的线程获取锁的顺序，ReentrantLook可以自己控制是否公平
+
+Synchronized：底层使用指令码方式来控制锁的，映射成字节码指令就是增加来两个指令：monitorenter和monitorexit。当线程执行遇到monitorenter指令时会尝试获取内置锁，如果获取锁则锁计数器+1，如果没有获取锁则阻塞；当遇到monitorexit指令时锁计数器-1，如果计数器为0则释放锁。
+Lock：底层是CAS乐观锁，依赖AbstractQueuedSynchronizer类，把所有的请求线程构成一个CLH队列。而对该队列的操作均通过Lock-Free（CAS）操作。
+
+AbstractQueuedSynchronizer---------ReentranLock，Semaphore和CountDownLatch等。
+FairSync和NonfairSync都继承了Sync类，而Sync的父类就是AbstractQueuedSynchronizer(后续简称AQS)
+
+CLH锁即Craig, Landin, and Hagersten (CLH) locks。CLH锁是一个自旋锁。能确保无饥饿性。提供先来先服务的公平性。
+CLH算法实现
+
+CLH队列中的结点QNode中含有一个locked字段，该字段若为true表示该线程须要获取锁，且不释放锁。为false表示线程释放了锁
+
+* CLH排队使用公平方式，锁内部需要保存【尾节点】的引用，每次排队线程加入到队列最末尾。
+* CLH锁使用反向链表方式进行排队，那么每个线程就需要维护【自己的状态】和保持一个【前向节点的引用】。
+* CLH使用一个【boolean值】表示当前线程获取锁状态。false表示当前线程释放锁；true表示当前线程等待获取锁或已经获取到锁。
+
+为什么要使用线程池？
+为了减少创建和销毁线程的次数，让每个线程可以多次使用,可根据系统情况调整执行的线程数量，防止消耗过多内存,所以我们可以使用线程池.java中线程池的顶级接口是Executor(e可rai kei ter)，ExecutorService是Executor的子类，也是真正的线程池接口
+(newSingleThreadExecutor),固定数量的线程池(newFixedThreadPool)，可缓存线程池(newCachedThreadPool),大小无限制的线程池(newScheduledThreadPool),
+①newSingleThreadExecutor
+单个线程的线程池，即线程池中每次只有一个线程工作，单线程串行执行任务
+②newFixedThreadExecutor(n)
+固定数量的线程池，没提交一个任务就是一个线程，直到达到线程池的最大数量，然后后面进入等待队列直到前面的任务完成才继续执行
+③newCacheThreadExecutor（推荐使用）
+可缓存线程池，当线程池大小超过了处理任务所需的线程，那么就会回收部分空闲（一般是60秒无执行）的线程，当有任务来时，又智能的添加新线程来执行。
+④newScheduleThreadExecutor
+大小无限制的线程池，支持定时和周期性的执行线程
+ 
+
+1.减少了创建和销毁线程的次数，每个工作线程都可以被重复利用，可执行多个任务。
+2.可以根据系统的承受能力
+
+
+核心线程池ThreadPoolExecutor的参数
+
+ThreadPoolExecutor的完整构造方法的签名是：ThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler) .
+corePoolSize----池中所保存的线程数，包括空闲线程
+maximumPoolSize-池中允许的最大线程数。
+keepAliveTime - 当线程数大于核心时，此为终止前多余的空闲线程等待新任务的最长时间。
+unit - keepAliveTime 参数的时间单位。
+workQueue - 执行前用于保持任务的队列。此队列仅保持由 execute方法提交的 Runnable任务。
+threadFactory - 执行程序创建新线程时使用的工厂。
+handler - 由于超出线程范围和队列容量而使执行被阻塞时所使用的处理程序。
+ThreadPoolExecutor是Executors类的底层实现。
+
+排队有三种通用策略：
+直接提交。工作队列的默认选项是 SynchronousQueue，它将任务直接提交给线程而不保持它们
+
+无界队列。使用无界队列（例如，不具有预定义容量的 LinkedBlockingQueue）将导致在所有corePoolSize 线程都忙时新任务在队列中等待
+有界队列。当使用有限的 maximumPoolSizes时，有界队列（如 ArrayBlockingQueue）有助于防止资源耗尽，但是可能较难调整和控制
+
+RejectedExecutionHandler：
+CallerRunsPolicy：线程调用运行该任务的 execute 本身
+AbortPolicy：处理程序遭到拒绝将抛出运行时RejectedExecutionException
+DiscardPolicy：不能执行的任务将被删除
+DiscardOldestPolicy：如果执行程序尚未关闭，则位于工作队列头部的任务将被删除
+
+
+ThreadPoolExecutor的工作流程？
+1. 
+
+
+
+
+
+
+
+
+如何控制线程池线程的优先级？
+Thread.currentThread.setPriority(0
+
+
+
+线程之间如何通信
+方式一：使用 volatile 关键字
+
+基于 volatile 关键字来实现线程间相互通信是使用共享内存的思想，大致意思就是多个线程同时监听一个变量，当这个变量发生变化的时候 ，线程能够感知并执行相应的业务。这也是最简单的一种实现方式
+
+方式二：使用Object类的wait() 和 notify() 方法
+
+众所周知，Object类提供了线程间通信的方法：wait()、notify()、notifyaAl()，它们是多线程通信的基础，而这种实现方式的思想自然是线程间通信。
+
+方式三：使用JUC工具类 CountDownLatch
+jdk1.5之后在java.util.concurrent包下提供了很多并发编程相关的工具类，简化了我们的并发编程代码的书写，***CountDownLatch***基于AQS框架，相当于也是维护了一个线程间共享变量state
+方程四：使用 ReentrantLock 结合 Condition
+方式五：基本LockSupport实现线程间的阻塞和唤醒
+
+LockSupport 是一种非常灵活的实现线程间阻塞和唤醒的工具，使用它不用关注是等待线程先进行还是唤醒线程先运行，但是得知道线程的名
+为什么线程之间要通信?
+
+默认情况下CPU是随机切换线程的,当需要多个线程共同完成任务,如何协调多个线程对同一资源的竞争.这个时候就必须要线程之间通信进行协调通信
+
+什么是线程间通信?
+
+线程通信是指一个线程在进行了规定了之后就进入等待状态,等待其他的线程执行完毕,再将其唤醒.
+线程的等待唤醒机制是wait(),notify().
+具体是sychronized+wait+notify
+如何做?
+
+当前线程在别的线程调用notify(),notifyAll()方法前,导致当前线程等待.
+线程调用wait(),释放其对锁的拥有权,等待另外的线程唤醒他.
+为了确保wait的时候拥有锁,wait方法必须放在sychronized中.
+
+
+Boolean占几个字节？
+
+
+
+
+
+* 
+boolean类型被编译为int类型，等于是说JVM里占用字节和int完全一样，int是4个字节，于是boolean也是4字节
+* boolean数组在Oracle的JVM中，编码为byte数组，每个boolean元素占用8位=1字节
+
+
+jdk1.8/jdk1.7都分别新增了哪些特性？
+
+Lambda表达式
+
+Stream API
+
+---Stream操作的三个步骤
+创建stream+中间操作（过滤、map）+终止操作+较强大的两个终止操作 reduce和collect 
+
+reduce操作      collect操作
+并行流和串行流
+
+jdk1.8并行流使用的是fork/join框架进行并行操作
+
+ForkJoin框架
+
+Optional容器
+
+    * 使用Optional容器可以快速的定位NPE，并且在一定程度上可以减少对参数非空检验的代码量。
+
+
+
+hashmap数据结构
+
+　（hashmap数据结构：在jdk1.8中对hashMap等map集合的数据结构优化。hashMap数据结构的优化 （知识点）
+
+
+
+Exception和Error？
+Exception和Error体现了JAVA这门语言对于异常处理的两种方式。
+
+Exception是java程序运行中可预料的异常情况，咱们可以获取到这种异常，并且对这种异常进行业务外的处理。
+
+Error是java程序运行中不可预料的异常情况，这种异常发生以后，会直接导致JVM不可处理或者不可恢复的情况。所以这种异常不可能抓取到，比如OutOfMemoryError、NoClassDefFoundError等。
+
+其中的Exception又分为检查性异常和非检查性异常。两个根本的区别在于，检查性异常 必须在编写代码时，使用try catch捕获（比如：IOException异常）。非检查性异常 在代码编写使，可以忽略捕获操作（比如：ArrayIndexOutOfBoundsException），这种异常是在代码编写或者使用过程中通过规范可以避免发生的。 切记，Error是Throw不是Exception
